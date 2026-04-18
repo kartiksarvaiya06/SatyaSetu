@@ -1,0 +1,90 @@
+{
+  "common": {
+    "welcome": "स्वागत पोर्टल में आपका स्वागत है",
+    "login": "लॉगिन",
+    "logout": "लॉगआउट",
+    "submit": "सबमिट करें",
+    "cancel": "रद्द करें",
+    "back": "वापस जाएं",
+    "search": "खोजें",
+    "filter": "फ़िल्टर",
+    "total": "कुल",
+    "appName": "Swagat IVR Resolution",
+    "appSubtitle": "सत्यापन परत",
+    "home": "होम",
+    "loading": "लोड हो रहा है...",
+    "noData": "कोई डेटा उपलब्ध नहीं"
+  },
+  "auth": {
+    "mobileNumber": "मोबाइल नंबर",
+    "enterOtp": "OTP दर्ज करें",
+    "verifyOtp": "OTP सत्यापित करें",
+    "username": "यूज़रनेम",
+    "password": "पासवर्ड",
+    "getOtp": "OTP प्राप्त करें",
+    "loginBtn": "लॉगिन करें",
+    "otpSent": "OTP भेजा गया है",
+    "otpResend": "OTP फिर से भेजें",
+    "otpSeconds": "सेकंड",
+    "wrongOtp": "गलत OTP. फिर से प्रयास करें.",
+    "invalidMobile": "सही मोबाइल नंबर दर्ज करें",
+    "userNotFound": "इस नंबर पर कोई उपयोगकर्ता नहीं",
+    "wrongCredentials": "गलत यूज़रनेम या पासवर्ड",
+    "citizenTab": "नागरिक",
+    "adminTab": "अधिकारी / कलेक्टर",
+    "mockOtp": "मॉक OTP: 123456",
+    "otpVerification": "OTP सत्यापन",
+    "selectRole": "भूमिका चुनें"
+  },
+  "citizen": {
+    "dashboard": "नागरिक डैशबोर्ड",
+    "submitGrievance": "शिकायत दर्ज करें",
+    "newGrievance": "नई शिकायत दर्ज करें",
+    "myGrievances": "मेरी शिकायतें",
+    "totalGrievances": "कुल शिकायतें",
+    "resolved": "हल की गई",
+    "pending": "लंबित",
+    "reopened": "फिर से खोली",
+    "category": "श्रेणी",
+    "description": "विवरण",
+    "location": "स्थान",
+    "photo": "फोटो",
+    "mobileForIvr": "IVR के लिए मोबाइल",
+    "submitted": "सबमिट हो गई",
+    "grievanceDetail": "शिकायत विवरण"
+  },
+  "department": {
+    "dashboard": "विभाग डैशबोर्ड",
+    "assignedGrievances": "सौंपी गई शिकायतें",
+    "markResolved": "हल के रूप में चिह्नित करें",
+    "qualityScore": "गुणवत्ता स्कोर",
+    "resolutionNote": "समाधान विवरण",
+    "triggerVerification": "सत्यापन शुरू करें"
+  },
+  "field": {
+    "tasks": "फील्ड ऑफिसर टास्क",
+    "verificationTasks": "सत्यापन कार्य",
+    "uploadPhoto": "फोटो अपलोड करें",
+    "captureGPS": "GPS कैप्चर करें",
+    "submitVisitLog": "विज़िट लॉग सबमिट करें",
+    "taskDetail": "टास्क विवरण"
+  },
+  "collector": {
+    "dashboard": "कलेक्टर डैशबोर्ड",
+    "departmentScores": "विभाग स्कोर",
+    "totalDepartments": "कुल विभाग",
+    "avgScore": "औसत स्कोर",
+    "pendingVerifications": "लंबित सत्यापन",
+    "autoReopens": "ऑटो फिर से खुली",
+    "leaderboard": "लीडरबोर्ड",
+    "failedVerifications": "विफल सत्यापन",
+    "escalate": "एस्केलेट करें",
+    "auditPacket": "ऑडिट पैकेट"
+  },
+  "status": {
+    "pending": "लंबित",
+    "verified_resolved": "सत्यापित हल",
+    "auto_reopened": "ऑटो फिर से खुली",
+    "resolved_pending_verification": "सत्यापन लंबित"
+  }
+}

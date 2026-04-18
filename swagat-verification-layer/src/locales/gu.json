@@ -1,0 +1,90 @@
+{
+  "common": {
+    "welcome": "સ્વાગત પોર્ટલમાં આપનું સ્વાગત છે",
+    "login": "લૉગિન",
+    "logout": "લૉગઆઉટ",
+    "submit": "સબમિટ કરો",
+    "cancel": "રદ કરો",
+    "back": "પાછા જાઓ",
+    "search": "શોધો",
+    "filter": "ફિલ્ટર",
+    "total": "કુલ",
+    "appName": "Swagat IVR Resolution",
+    "appSubtitle": "ચકાસણી સ્તર",
+    "home": "હોમ",
+    "loading": "લોડ થઈ રહ્યું છે...",
+    "noData": "કોઈ ડેટા ઉપલબ્ધ નથી"
+  },
+  "auth": {
+    "mobileNumber": "મોબાઈલ નંબર",
+    "enterOtp": "OTP દાખલ કરો",
+    "verifyOtp": "OTP ચકાસો",
+    "username": "યુઝરનેમ",
+    "password": "પાસવર્ડ",
+    "getOtp": "OTP મેળવો",
+    "loginBtn": "લૉગિન કરો",
+    "otpSent": "OTP મોકલવામાં આવ્યો છે",
+    "otpResend": "OTP ફરીથી મોકલો",
+    "otpSeconds": "સેકંડ",
+    "wrongOtp": "ખોટો OTP. ફરી પ્રયાસ કરો.",
+    "invalidMobile": "માન્ય મોબાઈલ નંબર દાખલ કરો",
+    "userNotFound": "આ નંબર પર કોઈ યુઝર નથી",
+    "wrongCredentials": "ખોટું યુઝરનેમ અથવા પાસવર્ડ",
+    "citizenTab": "નાગરિક",
+    "adminTab": "અધિકારી / કલેક્ટર",
+    "mockOtp": "મોક OTP: 123456",
+    "otpVerification": "OTP ચકાસણી",
+    "selectRole": "ભૂમિકા પસંદ કરો"
+  },
+  "citizen": {
+    "dashboard": "નાગરિક ડેશબોર્ડ",
+    "submitGrievance": "ફરિયાદ નોંધાવો",
+    "newGrievance": "નવી ફરિયાદ નોંધાવો",
+    "myGrievances": "મારી ફરિયાદો",
+    "totalGrievances": "કુલ ફરિયાદો",
+    "resolved": "ઉકેલાયેલ",
+    "pending": "પેન્ડિંગ",
+    "reopened": "ફરી ખુલ્લી",
+    "category": "કેટેગરી",
+    "description": "વર્ણન",
+    "location": "સ્થાન",
+    "photo": "ફોટો",
+    "mobileForIvr": "IVR માટે મોબાઈલ",
+    "submitted": "સબમિટ થઈ ગઈ",
+    "grievanceDetail": "ફરિયાદ વિગત"
+  },
+  "department": {
+    "dashboard": "વિભાગ ડેશબોર્ડ",
+    "assignedGrievances": "સોંપાયેલ ફરિયાદો",
+    "markResolved": "ઉકેલાયેલ તરીકે ચિહ્નિત કરો",
+    "qualityScore": "ગુણવત્તા સ્કોર",
+    "resolutionNote": "ઉકેલ વિગત",
+    "triggerVerification": "ચકાસણી શરૂ કરો"
+  },
+  "field": {
+    "tasks": "ફિલ્ડ ઓફિસર ટાસ્ક",
+    "verificationTasks": "ચકાસણી કાર્યો",
+    "uploadPhoto": "ફોટો અપલોડ કરો",
+    "captureGPS": "GPS કેપ્ચર કરો",
+    "submitVisitLog": "મુલાકાત લોગ સબમિટ",
+    "taskDetail": "ટાસ્ક વિગત"
+  },
+  "collector": {
+    "dashboard": "કલેક્ટર ડેશબોર્ડ",
+    "departmentScores": "વિભાગ સ્કોર",
+    "totalDepartments": "કુલ વિભાગો",
+    "avgScore": "સરેરાશ સ્કોર",
+    "pendingVerifications": "ચકાસણી બાકી",
+    "autoReopens": "ફરી ખુલેલી",
+    "leaderboard": "લીડરબોર્ડ",
+    "failedVerifications": "નિષ્ફળ ચકાસણી",
+    "escalate": "એસ્કેલેટ કરો",
+    "auditPacket": "ઓડિટ પેકેટ"
+  },
+  "status": {
+    "pending": "પેન્ડિંગ",
+    "verified_resolved": "ઉકેલાયેલ",
+    "auto_reopened": "ફરી ખુલ્લી",
+    "resolved_pending_verification": "ચકાસણી બાકી"
+  }
+}

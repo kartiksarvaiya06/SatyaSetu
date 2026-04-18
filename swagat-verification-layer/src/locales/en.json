@@ -1,0 +1,90 @@
+{
+  "common": {
+    "welcome": "Welcome to Swagat Portal",
+    "login": "Login",
+    "logout": "Logout",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "back": "Go Back",
+    "search": "Search",
+    "filter": "Filter",
+    "total": "Total",
+    "appName": "Swagat IVR Resolution",
+    "appSubtitle": "Verification Layer",
+    "home": "Home",
+    "loading": "Loading...",
+    "noData": "No data available"
+  },
+  "auth": {
+    "mobileNumber": "Mobile Number",
+    "enterOtp": "Enter OTP",
+    "verifyOtp": "Verify OTP",
+    "username": "Username",
+    "password": "Password",
+    "getOtp": "Get OTP",
+    "loginBtn": "Login",
+    "otpSent": "OTP has been sent to",
+    "otpResend": "Resend OTP",
+    "otpSeconds": "seconds",
+    "wrongOtp": "Wrong OTP. Try again.",
+    "invalidMobile": "Enter a valid mobile number",
+    "userNotFound": "No user found with this number",
+    "wrongCredentials": "Wrong username or password",
+    "citizenTab": "Citizen",
+    "adminTab": "Officer / Collector",
+    "mockOtp": "Mock OTP: 123456",
+    "otpVerification": "OTP Verification",
+    "selectRole": "Select Role"
+  },
+  "citizen": {
+    "dashboard": "Citizen Dashboard",
+    "submitGrievance": "Submit Grievance",
+    "newGrievance": "Submit New Grievance",
+    "myGrievances": "My Grievances",
+    "totalGrievances": "Total Grievances",
+    "resolved": "Resolved",
+    "pending": "Pending",
+    "reopened": "Reopened",
+    "category": "Category",
+    "description": "Description",
+    "location": "Location",
+    "photo": "Photo",
+    "mobileForIvr": "Mobile for IVR",
+    "submitted": "Submitted",
+    "grievanceDetail": "Grievance Detail"
+  },
+  "department": {
+    "dashboard": "Department Dashboard",
+    "assignedGrievances": "Assigned Grievances",
+    "markResolved": "Mark as Resolved",
+    "qualityScore": "Quality Score",
+    "resolutionNote": "Resolution Details",
+    "triggerVerification": "Trigger Verification"
+  },
+  "field": {
+    "tasks": "Field Officer Tasks",
+    "verificationTasks": "Verification Tasks",
+    "uploadPhoto": "Upload Photo",
+    "captureGPS": "Capture GPS",
+    "submitVisitLog": "Submit Visit Log",
+    "taskDetail": "Task Detail"
+  },
+  "collector": {
+    "dashboard": "Collector Dashboard",
+    "departmentScores": "Department Scores",
+    "totalDepartments": "Total Departments",
+    "avgScore": "Average Score",
+    "pendingVerifications": "Pending Verifications",
+    "autoReopens": "Auto Reopened",
+    "leaderboard": "Leaderboard",
+    "failedVerifications": "Failed Verifications",
+    "escalate": "Escalate",
+    "auditPacket": "Audit Packet"
+  },
+  "status": {
+    "pending": "Pending",
+    "verified_resolved": "Verified Resolved",
+    "auto_reopened": "Auto Reopened",
+    "resolved_pending_verification": "Verification Pending"
+  }
+}
