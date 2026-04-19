@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { loginSuccess, clearTemp } from '../../store/authSlice';
 
@@ -8,17 +8,18 @@ export default function OtpVerification() {
   const { t } = useTranslation();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const location = useLocation();
 
+  const tempMobile = useSelector(state => state.auth.tempMobile);
   const tempUserData = useSelector(state => state.auth.tempUserData);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [timer, setTimer] = useState(30);
   const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!tempUserData) navigate('/login');
-  }, [tempUserData, navigate]);
+    if (!tempMobile) navigate('/login');
+  }, [tempMobile, navigate]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -33,7 +34,6 @@ export default function OtpVerification() {
     newOtp[index] = value;
     setOtp(newOtp);
 
-    // Auto focus next
     if (value && index < 5) {
       const next = document.getElementById(`otp-${index + 1}`);
       if (next) next.focus();
@@ -47,38 +47,62 @@ export default function OtpVerification() {
     }
   };
 
-  const handleVerify = (e) => {
+  const handleVerify = async (e) => {
     e.preventDefault();
     const otpValue = otp.join('');
-    if (otpValue === '123456') {
-      setSuccess(true);
-      setTimeout(() => {
-        dispatch(loginSuccess(tempUserData));
-        switch (tempUserData.role) {
-          case 'citizen': navigate('/citizen/dashboard'); break;
-          case 'department': navigate('/department/dashboard'); break;
-          case 'field': navigate('/field/tasks'); break;
-          case 'collector': navigate('/collector/dashboard'); break;
-          default: navigate('/');
-        }
-      }, 800);
-    } else {
-      setError(t('auth.wrongOtp'));
-      setOtp(['', '', '', '', '', '']);
-      document.getElementById('otp-0')?.focus();
+    if (otpValue.length < 6) return;
+    
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile: tempMobile, otp: otpValue })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || 'Verification failed');
+        setOtp(['', '', '', '', '', '']);
+        document.getElementById('otp-0')?.focus();
+      } else {
+        setSuccess(true);
+        setTimeout(() => {
+          dispatch(loginSuccess(data.user));
+          switch (data.user.role) {
+            case 'citizen': navigate('/citizen/dashboard'); break;
+            case 'department': navigate('/department/dashboard'); break;
+            case 'field': navigate('/field/tasks'); break;
+            case 'collector': navigate('/collector/dashboard'); break;
+            default: navigate('/');
+          }
+        }, 800);
+      }
+    } catch (err) {
+      setError('Cannot connect to server.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleResend = () => {
-    setTimer(30);
+  const handleResend = async () => {
     setError('');
+    try {
+      await fetch('http://localhost:5000/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile: tempMobile })
+      });
+      setTimer(30);
+    } catch (err) {
+      setError('Failed to resend OTP.');
+    }
   };
 
-  if (!tempUserData) return null;
-
-  const identifier = tempUserData.mobile
-    ? `+91 ${tempUserData.mobile}`
-    : tempUserData.username;
+  if (!tempMobile) return null;
 
   return (
     <div style={{
@@ -108,10 +132,10 @@ export default function OtpVerification() {
           </div>
 
           <h2 style={{ fontSize: 24, fontWeight: 700, color: '#e2e8f0', marginBottom: 8 }}>
-            {t('auth.otpVerification')}
+            OTP Verification
           </h2>
           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', marginBottom: 28 }}>
-            {t('auth.otpSent')} <span style={{ color: '#60a5fa' }}>{identifier}</span>
+            OTP Sent to <span style={{ color: '#60a5fa' }}>+91 {tempMobile}</span>
           </p>
 
           {error && (
@@ -164,9 +188,9 @@ export default function OtpVerification() {
               type="submit"
               className={`glow-btn ${success ? 'glow-btn-green' : ''}`}
               style={{ width: '100%', padding: '14px', fontSize: '1rem' }}
-              disabled={otp.join('').length < 6}
+              disabled={otp.join('').length < 6 || loading}
             >
-              {success ? '✓ Verified!' : t('auth.verifyOtp')}
+              {loading ? 'Verifying...' : success ? '✓ Verified!' : 'Verify OTP'}
             </button>
           </form>
 
@@ -174,7 +198,7 @@ export default function OtpVerification() {
           <div style={{ marginTop: 20 }}>
             {timer > 0 ? (
               <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>
-                {t('auth.otpResend')} ({timer} {t('auth.otpSeconds')})
+                Resend in ({timer}s)
               </span>
             ) : (
               <button
@@ -189,12 +213,12 @@ export default function OtpVerification() {
                   fontFamily: 'var(--font-gujarati)',
                 }}
               >
-                🔄 {t('auth.otpResend')}
+                🔄 Resend OTP
               </button>
             )}
           </div>
 
-          {/* Back */}
+           {/* Back */}
           <button
             onClick={() => {
               dispatch(clearTemp());
@@ -210,7 +234,7 @@ export default function OtpVerification() {
               fontFamily: 'var(--font-gujarati)',
             }}
           >
-            ← {t('common.back')}
+            ← Back
           </button>
         </div>
       </div>

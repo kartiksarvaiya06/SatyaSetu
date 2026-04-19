@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { setTempMobile, setTempUserData } from '../../store/authSlice';
-import { users } from '../../mockData/users';
+import { setTempMobile, setTempUserData, loginSuccess } from '../../store/authSlice';
 import { PhoneCall } from 'lucide-react';
 
 export default function Login() {
@@ -12,11 +11,13 @@ export default function Login() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useSelector(state => state.auth);
 
-  const [role, setRole] = useState('citizen');
+  const [mainRoleType, setMainRoleType] = useState('citizen'); // 'citizen' or 'government'
+  const [govRole, setGovRole] = useState('department');
+
   const [mobile, setMobile] = useState('');
-  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -31,37 +32,56 @@ export default function Login() {
     }
   }, [isAuthenticated, user, navigate]);
 
-  const handleCitizenLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     if (!/^\d{10}$/.test(mobile)) {
-      setError(t('auth.invalidMobile'));
+      setError(t('auth.invalidMobile') || 'Invalid Mobile Number');
       return;
     }
-    const user = users.find(u => u.mobile === mobile && u.role === 'citizen');
-    if (!user) {
-      setError(t('auth.userNotFound'));
-      return;
-    }
-    dispatch(setTempMobile(mobile));
-    dispatch(setTempUserData(user));
-    navigate('/verify-otp', { state: { role: 'citizen' } });
-  };
 
-  const handleAdminLogin = (e) => {
-    e.preventDefault();
-    setError('');
-    const user = users.find(u =>
-      u.username === username &&
-      u.password === password &&
-      ['department', 'field', 'collector'].includes(u.role)
-    );
-    if (!user) {
-      setError(t('auth.wrongCredentials'));
+    if (mainRoleType === 'government' && !password) {
+      setError('Password is required');
       return;
     }
-    dispatch(setTempUserData(user));
-    navigate('/verify-otp', { state: { role: user.role } });
+
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          mobile,
+          password: mainRoleType === 'government' ? password : null
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || 'Login failed');
+      } else {
+        if (data.requireOtp) {
+          dispatch(setTempMobile(mobile));
+          dispatch(setTempUserData(data.user));
+          navigate('/verify-otp');
+        } else {
+          // Direct login for officers
+          dispatch(loginSuccess(data.user));
+          // Dashboard routing based on role
+          switch (data.user.role) {
+            case 'department': navigate('/department/dashboard'); break;
+            case 'field': navigate('/field/tasks'); break;
+            case 'collector': navigate('/collector/dashboard'); break;
+            default: navigate('/');
+          }
+        }
+      }
+    } catch (err) {
+      setError('Cannot connect to server. Please ensure backend is running.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -95,15 +115,18 @@ export default function Login() {
             {t('common.welcome')}
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem' }}>
-            Gujarat Grievance Resolution Verification System
+            Swagat Grievance Resolution System
           </p>
         </div>
 
-        {/* Role Tabs */}
+        {/* Form Container */}
         <div className="glass-card" style={{ padding: 32 }}>
+
+          {/* Top Toggle: Citizen vs Government */}
           <div style={{ display: 'flex', gap: 0, marginBottom: 28, borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
             <button
-              onClick={() => { setRole('citizen'); setError(''); }}
+              type="button"
+              onClick={() => { setMainRoleType('citizen'); setError(''); }}
               style={{
                 flex: 1,
                 padding: '12px 0',
@@ -112,15 +135,16 @@ export default function Login() {
                 fontWeight: 600,
                 fontSize: '0.9rem',
                 transition: 'all 0.3s ease',
-                fontFamily: 'var(--font-gujarati)',
-                background: role === 'citizen' ? 'linear-gradient(135deg, #3b82f6, #8b5cf6)' : 'transparent',
-                color: role === 'citizen' ? 'white' : 'rgba(255,255,255,0.5)',
+                fontFamily: 'var(--font-inter)',
+                background: mainRoleType === 'citizen' ? 'linear-gradient(135deg, #3b82f6, #8b5cf6)' : 'transparent',
+                color: mainRoleType === 'citizen' ? 'white' : 'rgba(255,255,255,0.5)',
               }}
             >
-              👤 {t('auth.citizenTab')}
+              👨‍💼 Citizen
             </button>
             <button
-              onClick={() => { setRole('admin'); setError(''); }}
+              type="button"
+              onClick={() => { setMainRoleType('government'); setError(''); }}
               style={{
                 flex: 1,
                 padding: '12px 0',
@@ -129,12 +153,12 @@ export default function Login() {
                 fontWeight: 600,
                 fontSize: '0.9rem',
                 transition: 'all 0.3s ease',
-                fontFamily: 'var(--font-gujarati)',
-                background: role === 'admin' ? 'linear-gradient(135deg, #3b82f6, #8b5cf6)' : 'transparent',
-                color: role === 'admin' ? 'white' : 'rgba(255,255,255,0.5)',
+                fontFamily: 'var(--font-inter)',
+                background: mainRoleType === 'government' ? 'linear-gradient(135deg, #3b82f6, #8b5cf6)' : 'transparent',
+                color: mainRoleType === 'government' ? 'white' : 'rgba(255,255,255,0.5)',
               }}
             >
-              🏛️ {t('auth.adminTab')}
+              🏛️ Government
             </button>
           </div>
 
@@ -154,51 +178,51 @@ export default function Login() {
             </div>
           )}
 
-          {/* Forms */}
-          {role === 'citizen' ? (
-            <form onSubmit={handleCitizenLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div>
+          {/* Form */}
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Conditional Sub-Dropdown if Government side is active */}
+            {mainRoleType === 'government' && (
+              <div style={{ animation: 'fadeIn 0.3s ease' }}>
                 <label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block', fontWeight: 500 }}>
-                  📱 {t('auth.mobileNumber')}
+                  🏢 Specify Department Role
                 </label>
-                <input
-                  id="citizen-mobile"
-                  type="tel"
-                  required
+                <select
+                  value={govRole}
+                  onChange={(e) => setGovRole(e.target.value)}
                   className="input-dark"
-                  placeholder="9876543210"
-                  value={mobile}
-                  onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
-                  maxLength="10"
-                  style={{ fontSize: '1.1rem', letterSpacing: '0.1em' }}
-                />
+                  style={{ width: '100%', padding: '12px', borderRadius: 8, background: 'rgba(0,0,0,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}
+                >
+                  <option style={{ background: '#1e293b', color: '#f8fafc' }} value="department">🏛️ Department Officer</option>
+                  <option style={{ background: '#1e293b', color: '#f8fafc' }} value="field">👨‍🏭 Field Officer</option>
+                  <option style={{ background: '#1e293b', color: '#f8fafc' }} value="collector">👑 Collector</option>
+                </select>
               </div>
-              <button type="submit" className="glow-btn" style={{ width: '100%', padding: '14px', fontSize: '1rem' }}>
-                {t('auth.getOtp')} →
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleAdminLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div>
+            )}
+
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block', fontWeight: 500 }}>
+                📱 Mobile Number
+              </label>
+              <input
+                id="login-mobile"
+                type="tel"
+                required
+                className="input-dark"
+                placeholder="9876543210"
+                value={mobile}
+                onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
+                maxLength="10"
+                style={{ fontSize: '1.1rem', letterSpacing: '0.1em' }}
+              />
+            </div>
+
+            {/* Password Field for Government Only */}
+            {mainRoleType === 'government' && (
+              <div style={{ animation: 'fadeIn 0.3s ease' }}>
                 <label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block', fontWeight: 500 }}>
-                  👤 {t('auth.username')}
+                  🔒 Password
                 </label>
                 <input
-                  id="admin-username"
-                  type="text"
-                  required
-                  className="input-dark"
-                  placeholder="rbd_officer / collector_ahm"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block', fontWeight: 500 }}>
-                  🔒 {t('auth.password')}
-                </label>
-                <input
-                  id="admin-password"
                   type="password"
                   required
                   className="input-dark"
@@ -207,40 +231,19 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
-              <button type="submit" className="glow-btn" style={{ width: '100%', padding: '14px', fontSize: '1rem' }}>
-                {t('auth.loginBtn')} →
-              </button>
-            </form>
-          )}
+            )}
 
-          {/* Mock OTP info */}
-          <div style={{
-            marginTop: 20,
-            padding: '10px 16px',
-            background: 'rgba(59, 130, 246, 0.08)',
-            border: '1px solid rgba(59, 130, 246, 0.2)',
-            borderRadius: 10,
-            textAlign: 'center',
-            fontSize: '0.8rem',
-            color: '#60a5fa',
-          }}>
-            💡 {t('auth.mockOtp')}
-          </div>
+            <button type="submit" disabled={loading} className="glow-btn" style={{ width: '100%', padding: '14px', fontSize: '1rem', marginTop: 10 }}>
+              {loading ? (mainRoleType === 'citizen' ? 'Sending OTP...' : 'Logging in...') : (mainRoleType === 'citizen' ? 'Get OTP →' : 'Log In →')}
+            </button>
+          </form>
 
-          {/* Demo Credentials */}
-          <div style={{
-            marginTop: 16,
-            padding: 16,
-            background: 'rgba(255,255,255,0.03)',
-            borderRadius: 10,
-            fontSize: '0.75rem',
-            color: 'rgba(255,255,255,0.35)',
-          }}>
-            <p style={{ fontWeight: 600, marginBottom: 8, color: 'rgba(255,255,255,0.5)' }}>Demo Credentials:</p>
-            <p>Citizen: <span style={{ color: '#60a5fa' }}>9876543210</span></p>
-            <p>Dept Officer: <span style={{ color: '#60a5fa' }}>rbd_officer / password123</span></p>
-            <p>Field Officer: <span style={{ color: '#60a5fa' }}>field_officer1 / field123</span></p>
-            <p>Collector: <span style={{ color: '#60a5fa' }}>collector_ahm / collector123</span></p>
+          {/* Signup Link */}
+          <div style={{ marginTop: 24, textAlign: 'center', fontSize: '0.9rem' }}>
+            <span style={{ color: 'rgba(255,255,255,0.4)' }}>Don't have an account? </span>
+            <Link to="/signup" style={{ color: '#60a5fa', textDecoration: 'none', fontWeight: 600 }}>
+              Sign Up
+            </Link>
           </div>
         </div>
       </div>

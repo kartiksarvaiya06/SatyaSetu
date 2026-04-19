@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/common/Layout';
 import Login from './pages/auth/Login';
+import Signup from './pages/auth/Signup';
 import OtpVerification from './pages/auth/OtpVerification';
 import CitizenDashboard from './pages/citizen/CitizenDashboard';
 import GrievanceForm from './pages/citizen/GrievanceForm';
@@ -15,6 +16,7 @@ function App() {
       <Route path="/" element={<Layout />}>
         <Route index element={<Login />} />
         <Route path="login" element={<Login />} />
+        <Route path="signup" element={<Signup />} />
         <Route path="verify-otp" element={<OtpVerification />} />
 
         {/* Citizen Routes */}

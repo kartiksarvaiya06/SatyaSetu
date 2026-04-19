@@ -1,25 +1,71 @@
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { departments } from '../../mockData/departments';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { fetchCollectorStats } from '../../store/grievanceSlice';
 
 export default function CollectorDashboard() {
   const { t } = useTranslation();
+  const dispatch = useDispatch();
   const { user } = useSelector(state => state.auth);
-  const grievances = useSelector(state => state.grievances.items);
+  const { collectorData, loading } = useSelector(state => state.grievances);
   const [selectedDept, setSelectedDept] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [escalating, setEscalating] = useState(false);
 
-  const totalDepts = departments.length;
-  const avgScore = Math.round(departments.reduce((sum, d) => sum + d.qualityScore, 0) / totalDepts);
-  const pendingVerifications = grievances.filter(g => g.status === 'resolved_pending_verification').length;
-  const autoReopens = grievances.filter(g => g.status === 'auto_reopened').length;
+  useEffect(() => {
+    dispatch(fetchCollectorStats());
+  }, [dispatch]);
+
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const handleEscalate = async (dept) => {
+    setEscalating(true);
+    try {
+      const message = `⚠️ Collector notice: ${dept.name} department has a low quality score of ${dept.qualityScore}/100. Immediate action required on pending grievances.`;
+      const res = await fetch('http://localhost:5000/api/escalations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          department: dept.name,
+          message,
+          sentBy: user.name || 'Collector',
+        }),
+      });
+      if (res.ok) {
+        showToast(`📢 Escalation notice sent to ${dept.name} department successfully!`, 'success');
+      } else {
+        showToast('⚠️ Failed to send escalation. Try again.', 'error');
+      }
+    } catch (err) {
+      showToast('⚠️ Server error. Try again.', 'error');
+    } finally {
+      setEscalating(false);
+      setSelectedDept(null);
+    }
+  };
+
+  if (loading || !collectorData) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: 100 }}>
+        <p style={{ color: 'white' }}>લોડ થઈ રહ્યું છે...</p>
+      </div>
+    );
+  }
+
+  const { totalGrievances, pendingVerifications, autoReopens, departments } = collectorData;
+  const avgScore = departments.length > 0
+    ? Math.round(departments.reduce((sum, d) => sum + d.qualityScore, 0) / departments.length)
+    : 0;
 
   const chartData = departments.map(d => ({
-    name: d.nameGu,
+    name: d.name,
     score: d.qualityScore,
-    autoReopens: d.autoReopens,
-    disputes: d.disputedByCitizen,
+    total: d.total,
+    reopened: d.reopened
   })).sort((a, b) => b.score - a.score);
 
   const getBarColor = (score) => {
@@ -27,8 +73,6 @@ export default function CollectorDashboard() {
     if (score >= 50) return '#f59e0b';
     return '#ef4444';
   };
-
-  const failedGrievances = grievances.filter(g => g.status === 'auto_reopened');
 
   return (
     <div style={{ maxWidth: 1280, margin: '0 auto', padding: '32px 24px' }}>
@@ -38,19 +82,19 @@ export default function CollectorDashboard() {
           <span className="gradient-text">{t('collector.dashboard')}</span>
         </h1>
         <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', marginTop: 4 }}>
-          {user.name} | {user.district} જિલ્લો
+          {user.name} | {user.district || 'Gujarat'} જિલ્લો
         </p>
       </div>
 
       {/* Overview Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
         {[
-          { label: t('collector.totalDepartments'), value: totalDepts, icon: '🏢', colorClass: 'stat-card-blue', color: '#60a5fa' },
+          { label: t('collector.totalDepartments'), value: departments.length, icon: '🏢', colorClass: 'stat-card-blue', color: '#60a5fa' },
           { label: t('collector.avgScore'), value: avgScore, icon: '⭐', colorClass: 'stat-card-green', color: avgScore >= 80 ? '#34d399' : avgScore >= 50 ? '#fbbf24' : '#f87171' },
           { label: t('collector.pendingVerifications'), value: pendingVerifications, icon: '🔍', colorClass: 'stat-card-yellow', color: '#fbbf24' },
           { label: t('collector.autoReopens'), value: autoReopens, icon: '🔄', colorClass: 'stat-card-red', color: '#f87171' },
         ].map((stat, i) => (
-          <div key={i} className={`stat-card ${stat.colorClass} animate-fadeInUp stagger-${i + 1}`} style={{ opacity: 0 }}>
+          <div key={i} className={`stat-card ${stat.colorClass} animate-fadeInUp stagger-${i + 1}`} style={{ opacity: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <span style={{ fontSize: 32 }}>{stat.icon}</span>
               <div>
@@ -62,36 +106,21 @@ export default function CollectorDashboard() {
         ))}
       </div>
 
-      {/* Quality Score Chart */}
+      {/* Leaderboard Chart */}
       <div className="glass-card" style={{ padding: 24, marginBottom: 24 }}>
         <h2 style={{ fontSize: 18, fontWeight: 700, color: '#e2e8f0', marginBottom: 20 }}>
-          📊 {t('collector.leaderboard')} — {t('department.qualityScore')}
+          📊 {t('collector.leaderboard')}
         </h2>
         <div style={{ height: 300 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+            <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-              <XAxis
-                dataKey="name"
-                tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 12 }}
-                axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
-              />
-              <YAxis
-                domain={[0, 100]}
-                tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 12 }}
-                axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
-              />
+              <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10 }} />
+              <YAxis domain={[0, 100]} tick={{ fill: 'rgba(255,255,255,0.5)' }} />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: '#1e293b',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  borderRadius: 8,
-                  color: '#e2e8f0',
-                  fontSize: 13,
-                }}
-                cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
               />
-              <Bar dataKey="score" radius={[6, 6, 0, 0]} maxBarSize={50}>
+              <Bar dataKey="score" radius={[4, 4, 0, 0]}>
                 {chartData.map((entry, index) => (
                   <Cell key={index} fill={getBarColor(entry.score)} />
                 ))}
@@ -99,216 +128,123 @@ export default function CollectorDashboard() {
             </BarChart>
           </ResponsiveContainer>
         </div>
-        {/* Legend */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 16, flexWrap: 'wrap' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>
-            <span style={{ width: 12, height: 12, borderRadius: 3, background: '#10b981' }}></span> 80+ (Excellent)
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>
-            <span style={{ width: 12, height: 12, borderRadius: 3, background: '#f59e0b' }}></span> 50-79 (Average)
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>
-            <span style={{ width: 12, height: 12, borderRadius: 3, background: '#ef4444' }}></span> &lt;50 (Poor)
-          </span>
-        </div>
       </div>
 
-      {/* Department Details */}
-      <div className="glass-card" style={{ overflow: 'hidden', marginBottom: 24 }}>
+      {/* Detailed Scores Table */}
+      <div className="glass-card" style={{ overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#e2e8f0' }}>
-            🏢 {t('collector.departmentScores')}
-          </h2>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#e2e8f0' }}>🏢 {t('collector.departmentScores')}</h2>
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                {['વિભાગ', 'સ્કોર', 'ઉકેલાયેલ', 'ફરી ખુલ્લી', 'વિવાદ', 'સરેરાશ દિવસ', 'ક્રિયા'].map(h => (
-                  <th key={h} style={{
-                    padding: '12px 16px',
-                    textAlign: 'left',
-                    fontSize: '0.75rem',
-                    color: 'rgba(255,255,255,0.4)',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                  }}>
-                    {h}
-                  </th>
+              <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
+                {['વિભાગ', 'સ્કોર', 'કુલ', 'ઉકેલાયેલ', 'ફરી ખુલ્લી', 'ક્રિયા'].map(h => (
+                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left', color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {departments.map(dept => {
-                const scoreColor = dept.qualityScore >= 80 ? '#34d399' : dept.qualityScore >= 50 ? '#fbbf24' : '#f87171';
-                return (
-                  <tr
-                    key={dept.id}
-                    style={{
-                      borderBottom: '1px solid rgba(255,255,255,0.05)',
-                      transition: 'background 0.2s ease',
-                      cursor: 'pointer',
-                    }}
-                    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
-                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <td style={{ padding: '12px 16px' }}>
-                      <span style={{ color: '#e2e8f0', fontWeight: 500 }}>{dept.nameGu}</span>
-                      <br />
-                      <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem' }}>{dept.name}</span>
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <span style={{
-                        color: scoreColor,
-                        fontWeight: 800,
-                        fontSize: '1.1rem',
-                        fontFamily: 'var(--font-inter)',
-                      }}>
-                        {dept.qualityScore}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px 16px', color: '#34d399', fontFamily: 'var(--font-inter)' }}>
-                      {dept.totalResolved}/{dept.totalAttempts}
-                    </td>
-                    <td style={{ padding: '12px 16px', color: '#f87171', fontFamily: 'var(--font-inter)' }}>
-                      {dept.autoReopens}
-                    </td>
-                    <td style={{ padding: '12px 16px', color: '#fbbf24', fontFamily: 'var(--font-inter)' }}>
-                      {dept.disputedByCitizen}
-                    </td>
-                    <td style={{ padding: '12px 16px', color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-inter)' }}>
-                      {dept.avgResolutionDays}d
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      {dept.qualityScore < 50 && (
-                        <button
-                          className="glow-btn glow-btn-red"
-                          style={{ padding: '4px 12px', fontSize: '0.7rem' }}
-                          onClick={() => setSelectedDept(dept)}
-                        >
-                          {t('collector.escalate')}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+              {departments.map(dept => (
+                <tr key={dept.name} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  <td style={{ padding: '12px 16px', color: '#e2e8f0' }}>{dept.name}</td>
+                  <td style={{ padding: '12px 16px', fontWeight: 700, color: getBarColor(dept.qualityScore) }}>{dept.qualityScore}</td>
+                  <td style={{ padding: '12px 16px', color: 'rgba(255,255,255,0.6)' }}>{dept.total}</td>
+                  <td style={{ padding: '12px 16px', color: '#34d399' }}>{dept.resolved}</td>
+                  <td style={{ padding: '12px 16px', color: '#f87171' }}>{dept.reopened}</td>
+                  <td style={{ padding: '12px 16px' }}>
+                    {dept.qualityScore < 50 && (
+                      <button
+                        onClick={() => setSelectedDept(dept)}
+                        className="glow-btn glow-btn-red"
+                        style={{ padding: '4px 12px', fontSize: '0.7rem' }}
+                      >
+                        ⚠️ Escalate
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Failed Verifications */}
-      <div className="glass-card" style={{ overflow: 'hidden' }}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#e2e8f0' }}>
-            🔴 {t('collector.failedVerifications')}
-          </h2>
-        </div>
-        {failedGrievances.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
-            ✨ કોઈ નિષ્ફળ ચકાસણી નથી
-          </div>
-        ) : (
-          failedGrievances.map(g => (
-            <div key={g.id} style={{
-              padding: '16px 24px',
-              borderBottom: '1px solid rgba(255,255,255,0.05)',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <span style={{ color: '#60a5fa', fontWeight: 600, fontSize: '0.8rem', fontFamily: 'var(--font-inter)' }}>{g.id}</span>
-                    <span className="badge badge-reopened">🔄 {t('status.auto_reopened')}</span>
-                  </div>
-                  <p style={{ color: '#e2e8f0', fontSize: '0.85rem', marginBottom: 4 }}>{g.description}</p>
-                  <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem' }}>
-                    🏢 {g.department} | 📍 {g.location.address}
-                  </p>
-                </div>
-                <button
-                  className="glow-btn"
-                  style={{ padding: '6px 16px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
-                >
-                  📋 {t('collector.auditPacket')}
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Escalation Modal */}
+      {/* Escalation Confirm Modal */}
       {selectedDept && (
         <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.7)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: 20,
-        }}
-        onClick={() => setSelectedDept(null)}
-        >
-          <div
-            className="glass-card animate-fadeInUp"
-            style={{ maxWidth: 420, width: '100%', padding: 32, textAlign: 'center' }}
-            onClick={e => e.stopPropagation()}
-          >
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
+          zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+        }}>
+          <div className="glass-card animate-fadeInUp" style={{ maxWidth: 440, width: '100%', padding: 36, textAlign: 'center' }}>
+            
+            {/* Warning icon */}
             <div style={{
-              width: 60,
-              height: 60,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 28,
-              margin: '0 auto 20px',
-            }}>
-              ⚠️
-            </div>
-            <h3 style={{ color: '#e2e8f0', fontSize: 20, fontWeight: 700, marginBottom: 8 }}>
-              {t('collector.escalate')}
+              width: 72, height: 72, borderRadius: '50%',
+              background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 32, margin: '0 auto 20px',
+              boxShadow: '0 0 30px rgba(239,68,68,0.4)',
+            }}>⚠️</div>
+
+            <h3 style={{ color: '#f87171', fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
+              Escalation Notice
             </h3>
-            <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>
-              {selectedDept.nameGu} ({selectedDept.name})
+            <p style={{ color: '#e2e8f0', fontSize: '1rem', fontWeight: 700, marginBottom: 6 }}>
+              {selectedDept.name} Department
             </p>
-            <p style={{ color: '#f87171', fontSize: 28, fontWeight: 800, marginBottom: 20, fontFamily: 'var(--font-inter)' }}>
-              Score: {selectedDept.qualityScore}/100
+            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', marginBottom: 20, lineHeight: 1.7 }}>
+              Quality Score <span style={{ color: '#f87171', fontWeight: 700 }}>{selectedDept.qualityScore}/100</span> — Below acceptable threshold.<br />
+              A formal escalation notice will be sent to this department.
             </p>
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', marginBottom: 20 }}>
-              {selectedDept.autoReopens} ફરી ખુલ્લી | {selectedDept.disputedByCitizen} વિવાદ
-            </p>
+
+            {/* Message preview */}
+            <div style={{
+              background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
+              borderRadius: 10, padding: '12px 16px', marginBottom: 24,
+              fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', textAlign: 'left', lineHeight: 1.7,
+            }}>
+              📢 <strong style={{ color: '#fca5a5' }}>Notice:</strong> {selectedDept.name} department has a low quality score of {selectedDept.qualityScore}/100. Immediate action required on pending grievances.
+            </div>
+
             <div style={{ display: 'flex', gap: 12 }}>
               <button
                 onClick={() => setSelectedDept(null)}
                 style={{
-                  flex: 1,
-                  padding: 12,
-                  borderRadius: 12,
+                  flex: 1, padding: '12px', borderRadius: 12,
                   border: '1px solid rgba(255,255,255,0.15)',
-                  background: 'transparent',
-                  color: 'rgba(255,255,255,0.5)',
-                  cursor: 'pointer',
-                  fontFamily: 'var(--font-gujarati)',
+                  background: 'transparent', color: 'rgba(255,255,255,0.5)', cursor: 'pointer',
                 }}
               >
-                {t('common.cancel')}
+                રદ કરો
               </button>
               <button
-                onClick={() => { alert('Escalation sent!'); setSelectedDept(null); }}
+                onClick={() => handleEscalate(selectedDept)}
+                disabled={escalating}
                 className="glow-btn glow-btn-red"
-                style={{ flex: 1, padding: 12 }}
+                style={{ flex: 2, padding: '12px', fontSize: '0.95rem', opacity: escalating ? 0.6 : 1 }}
               >
-                ⚡ Escalate Now
+                {escalating ? '⏳ Sending...' : '📢 Send Escalation'}
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          padding: '14px 22px', borderRadius: 14, maxWidth: 400,
+          background: toast.type === 'success'
+            ? 'linear-gradient(135deg, rgba(16,185,129,0.95), rgba(5,150,105,0.95))'
+            : 'linear-gradient(135deg, rgba(239,68,68,0.95), rgba(185,28,28,0.95))',
+          color: 'white', fontWeight: 600, fontSize: '0.9rem',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          backdropFilter: 'blur(10px)',
+          animation: 'slideInRight 0.3s ease',
+        }}>
+          {toast.msg}
         </div>
       )}
     </div>

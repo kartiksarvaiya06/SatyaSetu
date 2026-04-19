@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { logout } from '../../store/authSlice';
 import { useState } from 'react';
-import { PhoneCall } from 'lucide-react';
 
 export default function Navbar() {
   const { t, i18n } = useTranslation();
@@ -52,20 +51,7 @@ export default function Navbar() {
       }}>
         {/* Logo */}
         <Link to={isAuthenticated ? getDashboardLink() : '/'} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 18,
-            fontWeight: 800,
-            color: 'white',
-          }}>
-            <PhoneCall size={20} />
-          </div>
+
           <div>
             <span style={{ fontSize: 18, fontWeight: 700, color: '#60a5fa' }}>{t('common.appName')}</span>
             <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>{t('common.appSubtitle')}</span>
